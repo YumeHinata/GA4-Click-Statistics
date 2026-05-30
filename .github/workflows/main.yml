@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: '0 * * * *'  # 每小时第 0 分钟执行
   workflow_dispatch:     # 允许你在 GitHub 页面上手动点击运行
+  
+permissions:
+  contents: write
 
 jobs:
   sync:
