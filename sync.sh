@@ -36,7 +36,21 @@ curl -s -X POST "https://analyticsdata.googleapis.com/v1beta/properties/${GA_PRO
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "${PAYLOAD}" | jq '
-    .rows | map({(.dimensionValues[0].value): (.metricValues[0].value | tonumber)}) | add
+    .rows
+    | map({
+
+        path: (.dimensionValues[0].value 
+               | sub("^.*/posts/"; "/posts/") 
+               | sub("index.html$"; "") 
+               | sub("/$"; "")),
+        views: (.metricValues[0].value | tonumber)
+      })
+
+    | map(select(.path | startswith("/posts/")))
+
+    | group_by(.path)
+    | map({(.[0].path): (map(.views) | add)})
+    | add
   ' > data/views.json
 
 echo "数据同步成功！已写入 data/views.json"
