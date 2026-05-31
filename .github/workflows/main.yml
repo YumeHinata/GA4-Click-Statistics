@@ -2,8 +2,8 @@ name: Hourly Views Sync
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 每小时第 0 分钟执行
-  workflow_dispatch:     # 允许你在 GitHub 页面上手动点击运行
+    - cron: '31 * * * *'  # 每小时第 31 分钟执行
+  workflow_dispatch:
   
 permissions:
   contents: write
@@ -30,6 +30,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/views.json
-          # 如果文件没有变化，git commit 会报错，用 || exit 0 优雅退出
-          git commit -m "chore: update page views [skip ci]" || exit 0
+          git commit -m "chore: update page views" || exit 0
           git push

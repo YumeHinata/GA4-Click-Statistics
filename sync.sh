@@ -7,7 +7,6 @@ if ! command -v jq &> /dev/null || ! command -v curl &> /dev/null; then
 fi
 
 # 2. 通过 Refresh Token 获取当次有效的 Access Token
-# 这里的 CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN 都作为 GitHub Secrets 传入
 echo "正在获取 Google Access Token..."
 ACCESS_TOKEN=$(curl -s -X POST https://oauth2.googleapis.com/token \
   -d "client_id=${GA_CLIENT_ID}" \
@@ -38,16 +37,13 @@ curl -s -X POST "https://analyticsdata.googleapis.com/v1beta/properties/${GA_PRO
   -d "${PAYLOAD}" | jq '
     .rows
     | map({
-
         path: (.dimensionValues[0].value 
                | sub("^.*/posts/"; "/posts/") 
                | sub("index.html$"; "") 
                | sub("/$"; "")),
         views: (.metricValues[0].value | tonumber)
       })
-
     | map(select(.path | startswith("/posts/")))
-
     | group_by(.path)
     | map({(.[0].path): (map(.views) | add)})
     | add
