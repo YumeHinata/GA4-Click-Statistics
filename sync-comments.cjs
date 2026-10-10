@@ -128,17 +128,18 @@ async function main() {
 
     if (!url.pathname.startsWith("/posts/")) continue;
 
-    const key = normalizePath(url.pathname);
-    if (key === "/posts") continue;
+  const key = normalizePath(url.pathname);
+  if (key === "/posts") continue;
 
-    if (!articles.has(key)) {
-      articles.set(key, {
-        key,
-        apiUrl: url.pathname,
-      });
-    }
+  // Map 查找统一使用解码、规范化后的路径
+  const matchKey = comparisonPath(url.pathname);
+
+  if (!articles.has(matchKey)) {
+    articles.set(matchKey, {
+      key,                 // 输出 JSON 时仍保留原始编码路径
+      apiUrl: url.pathname, // 请求 Twikoo 时使用文章实际路径
+    });
   }
-
   const articleList = [...articles.values()].sort(
     (a, b) => a.key.localeCompare(b.key)
   );
@@ -212,18 +213,22 @@ async function main() {
       }
 
       for (const item of result) {
-        const key = articles.get(comparisonPath(item.url))?.key;
+        const article = articles.get(comparisonPath(item.url));
 
-        if (key === undefined) continue;
-
-        const count = Number(item.count);
-
-        if (!Number.isFinite(count) || count < 0) {
-          throw new Error(`文章评论数无效：${item.url}`);
-        }
-
-        counts[key] = count;
+      if (!article) {
+        throw new Error(
+          `无法匹配 Twikoo 返回的文章路径：${item.url}`
+        );
       }
+
+  const count = Number(item.count);
+
+  if (!Number.isFinite(count) || count < 0) {
+    throw new Error(`文章评论数无效：${item.url}`);
+  }
+
+  counts[article.key] = count;
+}
 
       console.log(
         `已处理 ${Math.min(i + BATCH_SIZE, articleList.length)}/${articleList.length} 篇文章`
