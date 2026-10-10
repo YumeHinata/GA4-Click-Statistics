@@ -15,12 +15,7 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
+        
       - name: Run GA4 Views Sync
         env:
           GA_CLIENT_ID: ${{ secrets.GA_CLIENT_ID }}
@@ -33,15 +28,15 @@ jobs:
 
       - name: Run Twikoo Comments Sync
         env:
-          BLOG_ORIGIN: https://www.yumehinata.com/
+          BLOG_ORIGIN: https://www.yumehinata.com
           TWIKOO_ENV_ID: https://twikoo.yumehinata.com/
+          TWIKOO_INCLUDE_REPLY: "true"
         run: |
-          npm install --prefix "$RUNNER_TEMP/twikoo-sync" \
-            --no-save jsdom@26.1.0
-
-          NODE_PATH="$RUNNER_TEMP/twikoo-sync/node_modules" \
-            node sync-comments.cjs
-
+          sudo apt-get update
+          sudo apt-get install -y xmlstarlet
+          chmod +x sync-comments.sh
+          ./sync-comments.sh
+          
       - name: Commit and Push Changes
         run: |
           git config user.name "github-actions[bot]"
