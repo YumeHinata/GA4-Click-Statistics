@@ -173,13 +173,12 @@ for ((i = 0; i < ${#ARTICLE_LIST[@]}; i += BATCH_SIZE)); do
             --data-binary "$payload"
     )"
 
-    if ! jq -e '.result.data | type == "array"' \
+    if ! jq -e '.data | type == "array"' \
         >/dev/null 2>&1 <<<"$response"; then
-        echo "Error: Twikoo API 返回格式异常：" >&2
-        jq . <<<"$response" >&2 || printf '%s\n' "$response" >&2
+        echo "Error: Twikoo API 返回格式异常。" >&2
+        jq '{code, message, error}' <<<"$response" >&2 || true
         exit 1
     fi
-
     declare -A BATCH_SEEN=()
 
     while IFS= read -r item; do
@@ -211,7 +210,7 @@ for ((i = 0; i < ${#ARTICLE_LIST[@]}; i += BATCH_SIZE)); do
 
         COUNTS["$key"]="$count"
         BATCH_SEEN["$key"]=1
-    done < <(jq -c '.result.data[]' <<<"$response")
+    done < <(jq -c '.data[]' <<<"$response")
 
     # API 缺少文章记录时直接报错，避免把缺失数据误认为 0。
     for path in "${batch[@]}"; do
