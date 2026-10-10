@@ -1,21 +1,27 @@
-name: Hourly Views Sync
+name: Views and Comments Sync
 
 on:
   schedule:
-    - cron: '25 3,15 * * *'  # 每天的 3:25 和 15:25 UTC（即北京时间 11:25 和 23:25）执行
+    - cron: '25 3,15 * * *'
   workflow_dispatch:
-  
+
 permissions:
   contents: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Run Sync Script
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run GA4 Views Sync
         env:
           GA_CLIENT_ID: ${{ secrets.GA_CLIENT_ID }}
           GA_CLIENT_SECRET: ${{ secrets.GA_CLIENT_SECRET }}
@@ -25,10 +31,28 @@ jobs:
           chmod +x sync.sh
           ./sync.sh
 
+      - name: Run Twikoo Comments Sync
+        env:
+          BLOG_ORIGIN: https://www.yumehinata.com/
+          TWIKOO_ENV_ID: https://twikoo.yumehinata.com/
+        run: |
+          npm install --prefix "$RUNNER_TEMP/twikoo-sync" \
+            --no-save jsdom@26.1.0
+
+          NODE_PATH="$RUNNER_TEMP/twikoo-sync/node_modules" \
+            node sync-comments.cjs
+
       - name: Commit and Push Changes
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/views.json
-          git commit -m "chore: update page views" || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/views.json data/comments.json
+
+          if git diff --cached --quiet; then
+            echo "No statistics changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore: update page views and comments"
           git push
